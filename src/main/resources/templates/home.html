@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!--    <meta charset="utf-8">-->
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!--    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>최적경로탐색</title>
+
+    <!-- Custom fonts for this template-->
+    <link href="bootstrap/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+            rel="stylesheet">
+    <!-- Custom styles for this template-->
+    <link href="bootstrap/css/sb-admin-2.min.css" rel="stylesheet">
+    <style>
+        div2 {
+            border: 3px solid orange;
+            margin: 10px;
+            padding: 20px;
+            width: 300px;
+            overflow: auto;
+        }
+    </style>
+
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script> <!--  다음 주소찾기-->
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=2GZawoNOIS9hHYP4Hk1aH9udqvgCuTYL5y3Tib9E"></script>
+    <script type="text/javascript">
+        var x1 = 0; // 출발 경도
+        var y1 = 0; // 출발 위도
+        var x2 = 0; // 경유지1 경도
+        var y2 = 0; // 경유지1 위도
+        var x3 = 0; // 도착 경도
+        var y3 = 0; // 도착 위도지
+        var num = 0; // 1: 출발, 2:경유지1, 3: 경유지2
+
+function add(adder) {
+            // 2. API 사용요청
+            // var fullAddr = $("#fullAddr").val();
+            var fullAddr = adder;
+            var headers = {};
+            headers["appKey"] = "2GZawoNOIS9hHYP4Hk1aH9udqvgCuTYL5y3Tib9E";
+            $.ajax({
+                method: "GET",
+                headers: headers,
+                url: "https://apis.openapi.sk.com/tmap/geo/fullAddrGeo?version=1&format=json&callback=result",
+                async: false,
+                data: {
+                    "coordType": "WGS84GEO",
+                    "fullAddr": fullAddr
+                },
+                success: function (response) {
+
+                    var resultInfo = response.coordinateInfo; // .coordinate[0];
+                    console.log(resultInfo);
+
+
+                    // 3.마커 찍기
+                    // 검색 결과 정보가 없을 때 처리
+                    if (resultInfo.coordinate.length == 0) {
+                        $("#result").text(
+                            "요청 데이터가 올바르지 않습니다.");
+                    } else {
+                        var lon, lat;
+                        var resultCoordinate = resultInfo.coordinate[0];
+                        if (resultCoordinate.lon.length > 0) {
+                            // 구주소
+                            lon = resultCoordinate.lon; // 경도
+                            lat = resultCoordinate.lat; // 위도
+                        } else {
+                            // 신주소
+                            lon = resultCoordinate.newLon; // 경도
+                            lat = resultCoordinate.newLat; // 위도
+                        }
+                        $("#wedo").html(lon);
+                        $("#wedo2").html(lat);
+                        switch (num) {
+                            case 1 :
+                                x1 = lat;
+                                y1 = lon;
+                                $("#st_latitude").html(lat);
+                                $("#st_longitude").html(lon);
+
+                                break;
+                            case 2:
+                                x2 = lat;
+                                y2 = lon;
+                                $("#sel1_latitude").html(lat);
+                                $("#sel1_longitude").html(lon);
+
+                                break;
+                            case 3:
+                                x3 = lat;
+                                y3 = lon;
+                                $("#sel2_latitude").html(lat);
+                                $("#sel2_longitude").html(lon);
+
+                                break;
+                        }
+
+                    }
+                },
+                error: function (request, status, error) {
+                    console.log(request);
+                    console.log("code:" + request.status + "\n message:" + request.responseText + "\n error:" + error);
+                    // 에러가 발생하면 맵을 초기화함
+                    // markerStartLayer.clearMarkers();
+                    // 마커초기화
+                    map.setCenter(new Tmapv2.LatLng(37.570028, 126.986072));
+                    $("#result").html("");
+
+                }
+            });
+
+
+        }
+
+    </script>
+</head>
+<!--onload="initTmap()"-->
+<body id="page-top" >
+
+<!-- Page Wrapper -->
+<div id="wrapper">
+
+    <!-- Sidebar -->
+    <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+        <!-- Sidebar - Brand -->
+        <a class="sidebar-brand d-flex align-items-center justify-content-center" th:href="@{home}">
+            <!--            <div class="sidebar-brand-icon rotate-n-15">-->
+            <!--                <i class="fas fa-laugh-wink"></i>-->
+            <!--            </div>-->
+            <div class="sidebar-brand-text mx-3" th:href="@{home}">ONE PASS</div>
+        </a>
+
+        <!-- Divider -->
+        <hr class="sidebar-divider my-0">
+
+        <!-- Nav Item - Dashboard -->
+        <li class="nav-item active">
+            <a class="nav-link" href="">
+                <!--                <i class="fas fa-fw fa-tachometer-alt"></i>-->
+                <i class="fas fa-fw fa-folder"></i>
+                <span>최적 경로 탐색</span></a>
+        </li>
+
+        <!-- Divider -->
+        <hr class="sidebar-divider">
+
+        <!-- Heading -->
+        <div class="sidebar-heading">
+            Interface
+        </div>
+
+        <!-- Nav Item - Pages Collapse Menu -->
+        <li class="nav-item">
+            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
+               aria-expanded="true" aria-controls="collapseTwo">
+                <i class="fas fa-fw fa-cog"></i>
+                <span>고객 정보</span>
+            </a>
+            <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+                <div class="bg-white py-2 collapse-inner rounded">
+                    <h6 class="collapse-header">Custom Components:</h6>
+                    <a class="collapse-item" th:href="@{buttons}">위치 추가</a>
+                    <a class="collapse-item" th:href="@{cards}">가맹점</a>
+                    <a class="collapse-item" th:href="@{cards}">소비자</a>
+                </div>
+            </div>
+        </li>
+
+        <!-- Nav Item - Utilities Collapse Menu -->
+        <li class="nav-item">
+            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
+               aria-expanded="true" aria-controls="collapseUtilities">
+                <i class="fas fa-fw fa-wrench"></i>
+                <span>Utilities</span>
+            </a>
+            <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
+                 data-parent="#accordionSidebar">
+                <div class="bg-white py-2 collapse-inner rounded">
+                    <h6 class="collapse-header">Custom Utilities:</h6>
+                    <a class="collapse-item" th:href="@{utilities-color}">Colors</a>
+                    <a class="collapse-item" th:href="@{utilities-border}">Borders</a>
+                    <a class="collapse-item" th:href="@{utilities-animation}">Animations</a>
+                    <a class="collapse-item" th:href="@{utilities-other}">Other</a>
+                </div>
+            </div>
+        </li>
+
+        <!-- Divider -->
+        <hr class="sidebar-divider">
+
+        <!-- Heading -->
+        <div class="sidebar-heading">
+            Addons
+        </div>
+
+        <!-- Nav Item - Pages Collapse Menu -->
+        <li class="nav-item">
+            <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages"
+               aria-expanded="true" aria-controls="collapsePages">
+                <i class="fas fa-fw fa-folder"></i>
+                <span>Pages</span>
+            </a>
+            <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+                <div class="bg-white py-2 collapse-inner rounded">
+                    <h6 class="collapse-header">Login Screens:</h6>
+                    <a class="collapse-item" href="login.html">Login</a>
+                    <a class="collapse-item" href="register.html">Register</a>
+                    <a class="collapse-item" href="forgot-password.html">Forgot Password</a>
+                    <div class="collapse-divider"></div>
+                    <h6 class="collapse-header">Other Pages:</h6>
+                    <a class="collapse-item" href="../public/error/4xx.html">404 Page</a>
+                    <a class="collapse-item" href="blank.html">Blank Page</a>
+                </div>
+            </div>
+        </li>
+
+        <!-- Nav Item - Charts -->
+        <li class="nav-item">
+            <a class="nav-link" href="charts.html">
+                <i class="fas fa-fw fa-chart-area"></i>
+                <span>Charts</span></a>
+        </li>
+
+        <!-- Nav Item - Tables -->
+        <li class="nav-item">
+            <a class="nav-link" href="tables.html">
+                <i class="fas fa-fw fa-table"></i>
+                <span>Tables</span></a>
+        </li>
+
+        <!-- Divider -->
+        <hr class="sidebar-divider d-none d-md-block">
+
+        <!-- Sidebar Toggler (Sidebar) -->
+        <div class="text-center d-none d-md-inline">
+            <button class="rounded-circle border-0" id="sidebarToggle"></button>
+        </div>
+
+        <!-- Sidebar Message -->
+        <!--        <div class="sidebar-card d-none d-lg-flex">-->
+        <!--            <img class="sidebar-card-illustration mb-2" src="bootstrap/img/undraw_rocket.svg" alt="...">-->
+        <!--            <p class="text-center mb-2"><strong>SB Admin Pro</strong> is packed with premium features, components,-->
+        <!--                and more!</p>-->
+        <!--            <a class="btn btn-success btn-sm" href="https://startbootstrap.com/theme/sb-admin-pro">Upgrade to-->
+        <!--                Pro!</a>-->
+        <!--        </div>-->
+
+    </ul>
+    <!-- End of Sidebar -->
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper" class="d-flex flex-column">
+
+        <!-- Main Content -->
+        <div id="content">
+
+            <!-- Topbar -->
+            <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+
+                <!-- Sidebar Toggle (Topbar) -->
+                <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                    <i class="fa fa-bars"></i>
+                </button>
+
+                <!-- Topbar Search -->
+                <form
+                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
+                    <div class="input-group">
+                        <!--                        <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."-->
+                        <!--                               aria-label="Search" aria-describedby="basic-addon2">-->
+                        <!--                        <div class="input-group-append">-->
+                        <!--                            <button class="btn btn-primary" type="button">-->
+                        <!--                                <i class="fas fa-search fa-sm"></i>-->
+                        <!--                            </button>-->
+                        <!--                        </div>-->
+                    </div>
+                </form>
+
+                <!-- Topbar Navbar -->
+                <ul class="navbar-nav ml-auto">
+
+                    <!-- Nav Item - Search Dropdown (Visible Only XS) -->
+                    <li class="nav-item dropdown no-arrow d-sm-none">
+                        <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
+                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-search fa-fw"></i>
+                        </a>
+                        <!-- Dropdown - Messages -->
+                        <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
+                             aria-labelledby="searchDropdown">
+                            <form class="form-inline mr-auto w-100 navbar-search">
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light border-0 small"
+                                           placeholder="Search for..." aria-label="Search"
+                                           aria-describedby="basic-addon2">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="button">
+                                            <i class="fas fa-search fa-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </li>
+
+
+                </ul>
+
+            </nav>
+            <!-- End of Topbar -->
+
+            <!-- Begin Page Content -->
+            <div class="container-fluid">
+
+                <!-- Page Heading -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <h1 class="h3 mb-2 text-gray-800">경로탐색</h1>
+                    <p class="mb-4">test text...
+                    </p>
+
+                    <!-- DataTales Example -->
+
+
+                </div>
+
+
+                <!-- Content Row -->
+
+                <div class="row">
+
+                    <!-- Area Chart -->
+                    <div class="col-xl-6 col-lg-2">
+                        <div class="card shadow mb-4">
+                            <!-- Card Header - Dropdown -->
+                            <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                <h6 class="m-0 font-weight-bold text-primary">음식 배달점 주소</h6>
+                                <div class="dropdown no-arrow">
+                                    <a href="#" id="btn_address_Q1" class="btn btn-primary"><span
+                                            class="text">주소 찾기</span></a>
+                                </div>
+                            </div>
+
+                            <!-- Card Body -->
+                            <div class="card-body">
+                                <div class="input-group">
+                                    <input type="text" id="address_Q1" class="form-control bg-light border-0 small"
+                                           placeholder="주소 찾기를 통해 주소를 입력해 주세요."
+                                           aria-label="Search" aria-describedby="basic-addon2" readonly>
+                                </div>
+
+                            </div>
+                            <script>
+                               document.getElementById("btn_address_Q1").onclick = function () {
+                                    new daum.Postcode({
+                                         oncomplete: function (data) { //선택시 입력값 세팅
+                                                 num = 1;
+                                                 document.getElementById("address_Q1").value = data.address; // 주소 넣기
+                                                  // $("#result2").html(data.address);
+                                                 add(data.address);
+                                            }
+                                         }).open();
+                                 };
+                            </script>
+                            </br>출발주소 위도 : <span id="st_latitude"></span>, 경도: <span id="st_longitude"></span>
+
+                        </div>
+                    </div>
+
+                    <!-- Pie Chart -->
+                    <div class="col-xl-6 col-lg-2">
+                        <div class="card shadow mb-4">
+                            <!-- Card Header - Dropdown -->
+                            <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                <h6 class="m-0 font-weight-bold text-primary">고객 배달 주소</h6>
+                                <div class="dropdown no-arrow">
+                                    <a href="#" id="btn_address_Q2" class="btn btn-primary"><span
+                                            class="text">주소 찾기</span></a>
+                                </div>
+                            </div>
+                            <!-- Card Body -->
+                            <div class="card-body">
+                                <div class="input-group">
+                                    <input type="text" id="address_Q2" class="form-control bg-light border-0 small"
+                                           placeholder="주소 찾기를 통해 주소를 입력해 주세요."
+                                           aria-label="Search" aria-describedby="basic-addon2">
+                                </div>
+
+                            </div>
+
+                            <script>
+                                document.getElementById("btn_address_Q2").onclick = function () {
+                                    new daum.Postcode({
+                                         oncomplete: function (data) { //선택시 입력값 세팅
+                                                 num = 2;
+                                                 document.getElementById("address_Q2").value = data.address; // 주소 넣기
+                                                  // $("#result2").html(data.address);
+                                                 add(data.address);
+                                            }
+                                         }).open();
+                                 };
+                            </script>
+                            </br>출발주소 위도 : <span id="sel1_latitude"></span>, 경도: <span id="sel1_longitude"></span>
+
+                        </div>
+                    </div>
+
+                    <div class="col-xl-6 col-lg-2">
+                        <div class="card shadow mb-4">
+                            <!-- Card Header - Dropdown -->
+                            <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                <h6 class="m-0 font-weight-bold text-primary">경유지 추가</h6>
+                                <div class="dropdown no-arrow">
+                                    <a href="#" id="btn_address_Q3" class="btn btn-primary"><span
+                                            class="text">주소 찾기</span></a>
+                                </div>
+                            </div>
+                            <!-- Card Body -->
+                            <div class="card-body">
+                                <div class="input-group">
+                                    <input type="text" id="address_Q3" class="form-control bg-light border-0 small"
+                                           placeholder="주소 찾기를 통해 주소를 입력해 주세요."
+                                           aria-label="Search" aria-describedby="basic-addon2">
+                                </div>
+
+                            </div>
+
+                            <script>
+                                document.getElementById("btn_address_Q3").onclick = function () {
+                                    new daum.Postcode({
+                                         oncomplete: function (data) { //선택시 입력값 세팅
+                                                 num = 3;
+                                                 document.getElementById("address_Q3").value = data.address; // 주소 넣기
+                                                  // $("#result2").html(data.address);
+                                                 add(data.address);
+                                            }
+                                         }).open();
+                                 };
+                            </script>
+                        </div>
+                        </br>출발주소 위도 : <span id="sel2_latitude"></span>, 경도: <span id="sel2_longitude"></span>
+
+                    </div>
+                </div>
+
+                <div class="col-xl-6 col-lg-2">
+                    <div align="right">
+                        <a href="#" class="btn btn-primary btn-icon-split" id="btn_address_add" onclick="addRow()">
+                                        <span class="icon text-white-50">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                            <span class="text"  >위치 추가</span>
+                        </a>
+                    </div>
+                </div>
+
+
+                <!--여기 티맵소스넣음-->
+                <!--                <p id="result">-->
+                <!--                </p>-->
+                <select id="selectLevel">
+                    <option value="0" selected="selected">교통최적+추천</option>
+                    <option value="1">교통최적+무료우선</option>
+                    <option value="2">교통최적+최소시간</option>
+                    <option value="3">교통최적+초보</option>
+                </select>&nbsp&nbsp
+                <!--                <button id="btn_select">적용하기</button>-->
+
+                <a href="#" class="btn btn-primary btn-icon-split" id="btn_select">
+                                        <span class="icon text-white-50">
+                                            <i class="fas fa-flag"></i>
+                                        </span>
+                    <span class="text">경로 생성</span>
+                </a>
+                <br/><br/>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">지도</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="map_wrap" class="map_wrap">
+                            <div id="map_div"></div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <br/>
+                <!--                <input type="text" id="address_kakao" name="address" readonly/>-->
+
+                <!-- Content Row -->
+                <div class="row">
+
+                    <!-- Earnings (Monthly) Card Example -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            총 거리
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800"><p id="result1"></p></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Earnings (Monthly) Card Example -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            소요 예상 시간
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800"><p id="result2"></p></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Earnings (Monthly) Card Example -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-info shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tasks
+                                        </div>
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col-auto">
+                                                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">50%</div>
+                                            </div>
+                                            <div class="col">
+                                                <div class="progress progress-sm mr-2">
+                                                    <div class="progress-bar bg-info" role="progressbar"
+                                                         style="width: 50%" aria-valuenow="50" aria-valuemin="0"
+                                                         aria-valuemax="100"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Requests Card Example -->
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-warning shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                            예상 요금
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800"><p id="result3"></p></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-comments fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+
+                    function addRow(){
+        // Javascript로 테이블에 행 추가 방법
+        var tableData = document.getElementById('dataTable');
+        var row = tableData.insertRow(dataTable.rows.length );
+
+        var cell1 = row.insertCell(0);
+        var cell2 = row.insertCell(1);
+        var cell3 = row.insertCell(2);
+        var cell4 = row.insertCell(3);
+<!--        var cell5 = row.insertCell(4);-->
+<!--        var cell6 = row.insertCell(5);-->
+
+
+<!--        cell1.innerHTML =  x1;-->
+<!--        cell2.innerHTML =  y1; //ex) 출발지, 경유지, 도착지-->
+        cell1.innerHTML =  document.getElementById('address_Q1').value;
+        cell2.innerHTML = x1;
+        cell3.innerHTML = y1;
+        cell4.innerHTML = '<button type="button" className="btn-danger">Delete</button>';
+    }
+
+
+                </script>
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">경유지 순서</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                <thead>
+                                <tr>
+<!--                                    <th>번호</th>-->
+<!--                                    <th>명칭</th>-->
+                                    <th>주소</th>
+                                    <th>위도</th>
+                                    <th>경도</th>
+                                    <th>action</th>
+                                </tr>
+                                </thead>
+                                <!--                                    <tfoot>-->
+                                <!--                                    <tr>-->
+                                <!--                                        <th>Name</th>-->
+                                <!--                                        <th>Position</th>-->
+                                <!--                                        <th>Office</th>-->
+                                <!--                                        <th>Age</th>-->
+                                <!--                                        <th>Start date</th>-->
+                                <!--                                        <th>Salary</th>-->
+                                <!--                                    </tr>-->
+                                <!--                                    </tfoot>-->
+                                <tbody>
+                                <tr>
+<!--                                    <td>1</td>-->
+<!--                                    <td>판교로 264</td>-->
+                                    <td>경기 성남시 분당구 판교로 264 (삼평동)</td>
+                                    <td>127.103309667907</td>
+                                    <td>37.4027408795499</td>
+                                    <td><a href="#" class="btn-danger"><span class="text">삭제</span></a></td>
+                                </tr>
+
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- 테이블 부분-->
+
+
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>Copyright &copy; Your Website 2021</span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <a class="btn btn-primary" href="login.html">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Bootstrap core JavaScript-->
+<script src="bootstrap/vendor/jquery/jquery.min.js"></script>
+<script src="bootstrap/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<!-- Core plugin JavaScript-->
+<script src="bootstrap/vendor/jquery-easing/jquery.easing.min.js"></script>
+
+<!-- Custom scripts for all pages-->
+<script src="bootstrap/js/sb-admin-2.min.js"></script>
+
+<!-- Page level plugins -->
+<script src="bootstrap/vendor/chart.js/Chart.min.js"></script>
+
+<!-- Page level custom scripts -->
+<script src="bootstrap/js/demo/chart-area-demo.js"></script>
+<script src="bootstrap/js/demo/chart-pie-demo.js"></script>
+
+</body>
+
+</html>

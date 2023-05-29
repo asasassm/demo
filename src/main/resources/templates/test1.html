@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script> <!--  다음 주소찾기-->
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=2GZawoNOIS9hHYP4Hk1aH9udqvgCuTYL5y3Tib9E"></script>
+    <script type="text/javascript">
+        var x1 = 0; // 출발 경도
+        var y1 = 0; // 출발 위도
+        var x2 = 0; // 경유지1 경도
+        var y2 = 0; // 경유지1 위도
+        var x3 = 0; // 경유지2 경도
+        var y3 = 0; // 경유지2 위도
+
+        var num = 0; // 1: 출발, 2:경유지1, 3: 경유지2
+
+        function add(adder) {
+            // 2. API 사용요청
+            // var fullAddr = $("#fullAddr").val();
+            var fullAddr = adder;
+            var headers = {};
+            headers["appKey"] = "2GZawoNOIS9hHYP4Hk1aH9udqvgCuTYL5y3Tib9E";
+            $.ajax({
+                method: "GET",
+                headers: headers,
+                url: "https://apis.openapi.sk.com/tmap/geo/fullAddrGeo?version=1&format=json&callback=result",
+                async: false,
+                data: {
+                    "coordType": "WGS84GEO",
+                    "fullAddr": fullAddr
+                },
+                success: function (response) {
+
+                    var resultInfo = response.coordinateInfo; // .coordinate[0];
+                    console.log(resultInfo);
+
+
+                    // 3.마커 찍기
+                    // 검색 결과 정보가 없을 때 처리
+                    if (resultInfo.coordinate.length == 0) {
+                        $("#result").text(
+                            "요청 데이터가 올바르지 않습니다.");
+                    } else {
+                        var lon, lat;
+                        var resultCoordinate = resultInfo.coordinate[0];
+                        if (resultCoordinate.lon.length > 0) {
+                            // 구주소
+                            lon = resultCoordinate.lon; // 경도
+                            lat = resultCoordinate.lat; // 위도
+                        } else {
+                            // 신주소
+                            lon = resultCoordinate.newLon; // 경도
+                            lat = resultCoordinate.newLat; // 위도
+                        }
+                        $("#wedo").html(lon);
+                        $("#wedo2").html(lat);
+                        switch (num) {
+                            case 1 :
+                                x1 = lat;
+                                y1 = lon;
+                                $("#st_latitude").html(lat);
+                                $("#st_longitude").html(lon);
+
+                                break;
+                            case 2:
+                                x2 = lat;
+                                y2 = lon;
+                                $("#sel1_latitude").html(lat);
+                                $("#sel1_longitude").html(lon);
+
+                                break;
+                            case 3:
+                                x3 = lat;
+                                y3 = lon;
+                                $("#sel2_latitude").html(lat);
+                                $("#sel2_longitude").html(lon);
+
+                                break;
+                        }
+
+                    }
+                },
+                error: function (request, status, error) {
+                    console.log(request);
+                    console.log("code:" + request.status + "\n message:" + request.responseText + "\n error:" + error);
+                    // 에러가 발생하면 맵을 초기화함
+                    // markerStartLayer.clearMarkers();
+                    // 마커초기화
+                    map.setCenter(new Tmapv2.LatLng(37.570028, 126.986072));
+                    $("#result").html("");
+
+                }
+            });
+
+
+        }
+
+    </script>
+
+</head>
+<body>
+<p>출발주소
+    <input type="text" id="address_st" placeholder="출발 주소지 입력"
+           aria-label="Search">
+    <button id="btn_address_st"><span
+            class="text">주소 찾기</span></button>
+    <script>
+        document.getElementById("btn_address_st").onclick = function () {
+            new daum.Postcode({
+                oncomplete: function (data) { //선택시 입력값 세팅
+                    num = 1;
+                    document.getElementById("address_st").value = data.address; // 주소 넣기
+                    // $("#result2").html(data.address);
+                    add(data.address);
+                }
+            }).open();
+        };
+    </script>
+    </br>출발주소 위도 : <span id="st_latitude"></span>, 경도: <span id="st_longitude"></span>
+</p>
+
+<p>경유지1 주소
+    <input type="text" id="address_sel1" placeholder="출발 주소지 입력"
+           aria-label="Search">
+    <button id="btn_address_sel1"><span
+            class="text">주소 찾기</span></button>
+    <script>
+        document.getElementById("btn_address_sel1").onclick = function () {
+            new daum.Postcode({
+                oncomplete: function (data) { //선택시 입력값 세팅
+                    num = 2;
+                    document.getElementById("address_sel1").value = data.address; // 주소 넣기
+                    // $("#result2").html(data.address);
+                    add(data.address);
+                }
+            }).open();
+        };
+    </script>
+    </br>출발주소 위도 : <span id="sel1_latitude"></span>, 경도: <span id="sel1_longitude"></span>
+</p>
+
+<p>경유지2 주소
+    <input type="text" id="address_sel2" placeholder="출발 주소지 입력"
+           aria-label="Search">
+    <button id="btn_address_sel2"><span
+            class="text">주소 찾기</span></button>
+    <script>
+        document.getElementById("btn_address_sel2").onclick = function () {
+            new daum.Postcode({
+                oncomplete: function (data) { //선택시 입력값 세팅
+                    num = 3;
+                    document.getElementById("address_sel2").value = data.address; // 주소 넣기
+                    // $("#result2").html(data.address);
+                    add(data.address);
+                }
+            }).open();
+        };
+    </script>
+    </br>출발주소 위도 : <span id="sel2_latitude"></span>, 경도: <span id="sel2_longitude"></span>
+</p>
+
+
+<!--테스트-->
+
+<script>
+    //const $table = document.getElementById('testTable'); // table 엘리먼트 취득
+    //console.log($table.rows.length);  // 3, 행 갯수 출력
+    function addRow(){
+        // Javascript로 테이블에 행 추가 방법
+        var tableData = document.getElementById('testTable');
+        var row = tableData.insertRow(tableData.rows.length );
+
+        var cell1 = row.insertCell(0);
+        var cell2 = row.insertCell(1);
+        var cell3 = row.insertCell(2);
+        // cell1.innerHTML = "<p id=\"st_latitude\"></p>";
+        // cell2.innerHTML = "<p id=\"st_longitude\"></p>";
+        cell1.innerHTML = x1;
+        cell2.innerHTML = x2;
+        cell3.innerHTML = '<button type="button" className="btn_delete">Delete</button>';
+    }
+
+</script>
+<button onclick="addRow()">행 추가하기</button>
+<input type='button' value='열추가' onclick='addColumn()'/>
+
+<table id="testTable">
+    <colgroup>
+        <col style="width: 30%">
+        <col style="width: 30%">
+        <col style="width: 30%">
+        <col style="width: 40%">
+    </colgroup>
+    <thead>
+    <tr>
+        <th>위도</th>
+        <th>경도</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>1</td>
+        <td>내용1</td>
+        <td>
+            <button type="button" class="btn_delete">Delete</button>
+        </td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>내용1</td>
+        <td>
+            <button type="button" class="btn_delete">Delete</button>
+        </td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td>내용1</td>
+        <td>
+            <button type="button" class="btn_delete">Delete</button>
+        </td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td>내용1</td>
+        <td>
+            <button type="button" class="btn_delete">Delete</button>
+        </td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td>내용1</td>
+        <td>
+            <button type="button" class="btn_delete">Delete</button>
+        </td>
+    </tr>
+    </tbody>
+</table>
+<script>
+
+
+    var eventTarget = document.getElementsByClassName('btn_delete')
+    for (var i = 0; i < eventTarget.length; i++) {
+        eventTarget[i].addEventListener('click', function () {
+            var parent = document.querySelector('#testTable tbody')
+            parent.removeChild(this.parentElement.parentElement)
+            i--
+        })
+    }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">-->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kakao API</title>
+</head>
+<body>
+<div class="row border-top p-3" style="margin-left: 350px; margin-right:50px;">
+  <div class="col-2"><h5><strong>주소 <span style="color:red;">*</span></strong></h5></div>
+  <div class="col-auto">
+    <input type="hidden" name="place">
+    <input type="text" size="40" name="address" id="address" class="essential">
+    <input type="hidden" name="lat">
+    <input type="hidden" name="lng">
+    <a type="button" id="reset" class="btn btn-outline-dark">초기화</a>
+  </div>
+</div>
+<script>
+  var geocoder = new kakao.maps.services.Geocoder();
+
+$("#address").click(function(){
+new daum.Postcode({
+oncomplete: function(data) {
+$("#address").val(data.address);
+$("#address").prop("readonly",true);
+$("input[name=place]").val(data.sido);
+var juso =  $("#address").val();
+geocoder.addressSearch(juso, callback);
+}
+}).open()
+});
+
+var callback = function(result, status) {
+if (status === kakao.maps.services.Status.OK) {
+$("input[name=lng]").val(result[0].x);
+$("input[name=lat]").val(result[0].y);
+}
+};
+</script>
+
+
+</body>
+
+</html>
